@@ -1,39 +1,36 @@
 import React from 'react';
 import Board from './Board';
 import v4 from 'uuid';
+import { connect } from 'react-redux';
 
 class Game extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      history: [{
-        squares: Array(9).fill(null),
-      }],
-      xIsNext: true,
-      stepNumber: 0
+      }
     };
-  }
-
-  jumpTo(step) {
-    this.setState({
-      stepNumber: step,
-      xIsNext: (step % 2) === 0
-    });
-  }
-
-  handleClick(i) {
-    const history = this.state.history.slice(0, this.state.stepNumber + 1);
-    const current = history[history.length - 1];
-    const squares = current.squares.slice();
-    squares[i] = this.state.xIsNext ? 'X' : 'O';
-    this.setState({
-      history: history.concat([{squares: squares,}]),
-      xIsNext: !this.state.xIsNext,
-      stepNumber: history.length
-    });
-    // this.calculateWinner();
-  }
-
+  //
+  // jumpTo(step) {
+  //   this.setState({
+  //     stepNumber: step,
+  //     xIsNext: (step % 2) === 0
+  //   });
+  // }
+  //
+  // handleClick(i) {
+  //   const history = this.state.history.slice(0, this.state.stepNumber + 1);
+  //   const current = history[history.length - 1];
+  //   const squares = current.squares.slice();
+  //   if (squares[i] !== null) { return null; }
+  //   squares[i] = this.state.xIsNext ? 'X' : 'O';
+  //   this.setState({
+  //     history: history.concat([{squares: squares,}]),
+  //     xIsNext: !this.state.xIsNext,
+  //     stepNumber: history.length
+  //   });
+  //   // this.calculateWinner();
+  // }
+  //
   // calculateWinner() {
   //   let winner = null;
   //   const lines = [
@@ -60,17 +57,44 @@ class Game extends React.Component {
   //   }
   // }
 
-  render() {
-    const history = this.state.history;
-    const current = history[this.state.stepNumber];
-    // const winner = calculateWinner(current.squares);
+  jumpTo(move) {
+    const { dispatch } = this.props;
+    const action = {
+      type: 'STEP',
+      step: move
+    }
+    dispatch(action);
+  }
 
-    // let status;
-    //     if (winner) {
-    //       status = 'Winner: ' + winner;
-    //     } else {
-          status = 'Next player: ' + (this.state.xIsNext ? 'X' : 'O');
-        // }
+  handleClick(i) {
+    const currentGameBoard = this.props.history;
+    const stepNumber = this.props.stepNumber;
+    if (currentGameBoard[stepNumber].squares[i] || this.props.winner) {
+      return;
+    } else {
+      const { dispatch } = this.props;
+      const action = {
+        type: 'CLICK',
+        position: i,
+        xIsNext: this.props.xIsNext,
+        stepNumber: stepNumber
+      }
+      dispatch(action);
+    }
+  }
+
+  render() {
+    const { dispatch } = this.props;
+    dispatch({ type: 'CHECK_WINNER', position: this.props.stepNumber });
+    const history = this.props.history;
+    const current = history[this.props.stepNumber];
+    let winner = this.props.winner;
+    let status;
+      if (winner) {
+        status = 'Winner: ' + winner;
+      } else {
+        status = 'Next player: ' + (this.props.xIsNext ? 'X' : 'O');
+      }
 
     const moves = history.map((step, move) => {
       const desc = move ?
@@ -100,4 +124,13 @@ class Game extends React.Component {
   }
 }
 
-export default Game;
+const mapStateToProps = state => {
+  return {
+    history: state.historySlice.history,
+    winner: state.historySlice.winner,
+    stepNumber: state.turnSlice.stepNumber,
+    xIsNext: state.turnSlice.xIsNext
+  }
+}
+
+export default connect(mapStateToProps)(Game);
